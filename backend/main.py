@@ -2,6 +2,7 @@ import requests
 import os
 import time
 import json
+from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from threading import Thread
@@ -24,6 +25,10 @@ def index():
 async def get_zoom_url(downloads_folder=downloads_folder, headers=headers):
     if request.method != 'POST':
         return "Error: Expected POST request"
+
+    # check if downloads folder exists
+    if not os.path.exists(downloads_folder):
+        os.makedirs(downloads_folder)
 
     zoom_url = request.json['zoom_url']
     print(zoom_url)
@@ -56,7 +61,10 @@ async def get_zoom_url(downloads_folder=downloads_folder, headers=headers):
     # authentication with Assembly AI
     endpoint = "https://api.assemblyai.com/v2/transcript"
 
-    json = {"audio_url": res['upload_url']}
+    transcript_json = {
+        "audio_url": res['upload_url'],
+        "auto_chapters": True
+    }
 
     headers = {
         "authorization": api_key,
@@ -64,12 +72,17 @@ async def get_zoom_url(downloads_folder=downloads_folder, headers=headers):
     }
 
     # wait for response
-    transcript = requests.post(endpoint, json=json, headers=headers)
+    requests_folder = "requests"
+    transcript = requests.post(endpoint, json=transcript_json, headers=headers)
+    req_json = os.path.join(requests_folder, datetime.now().strftime(
+        "%Y%m%d-%H%M%S") + '.json')
+    with open(req_json, 'w') as f:
+        json.dump(transcript.json(), f)
     _id = transcript.json()['id']
 
     # preform transcription asynchronously
     thread = Thread(target=get_zoom_transcript,
-                    args=(_id, downloads_folder, headers, True))
+                    args=(_id, "data", headers, True))
     thread.start()
 
     # delete temporary files
@@ -88,7 +101,7 @@ def get_zoom_transcript(_id, transcript_folder="./data/", headers=headers, loop=
             "https://api.assemblyai.com/v2/transcript/" + _id, headers=headers)
         if polling_response.json()['status'] != 'completed':
             print(polling_response.json())
-            time.sleep(1)
+            time.sleep(5)
         else:
             with open(ouput_file_name, 'w') as f:
                 json.dump(polling_response.json(), f)
@@ -107,7 +120,6 @@ def get_transcript_file(id, transcript_folder="./data/"):
     transcript_file = os.path.join(transcript_folder, id + '.json')
 
     # run model
-
 
     if os.path.exists(transcript_file):
         with open(transcript_file, 'r') as f:
@@ -132,6 +144,7 @@ def get_summary_file(id, transcript_folder="./data/"):
         get_zoom_transcript(id, loop=False)
 
     return {'code': 404, 'message': 'Transcript not found'}
+
 
 if __name__ == '__main__':
     # run debug server on port 3000
