@@ -105,7 +105,10 @@ def get_zoom_transcript(_id, transcript_folder="./data/", headers=headers, loop=
 @app.route('/transcript/<id>', methods=['GET'])
 def get_transcript_file(id, transcript_folder="./data/"):
     transcript_file = os.path.join(transcript_folder, id + '.json')
+
     # run model
+
+
     if os.path.exists(transcript_file):
         with open(transcript_file, 'r') as f:
             transcript = json.load(f)
@@ -115,6 +118,20 @@ def get_transcript_file(id, transcript_folder="./data/"):
 
     return {'code': 404, 'message': 'Transcript not found'}
 
+
+@app.route('/summary/<id>', methods=['GET'])
+def get_summary_file(id, transcript_folder="./data/"):
+    transcript_file = os.path.join(transcript_folder, id + '.json')
+
+    # get file content
+    if os.path.exists(transcript_file):
+        with open(transcript_file, 'r') as f:
+            transcript = json.load(f)
+        # return jsonify(transcript)
+    else:
+        get_zoom_transcript(id, loop=False)
+
+    return {'code': 404, 'message': 'Transcript not found'}
 
 if __name__ == '__main__':
     # run debug server on port 3000
