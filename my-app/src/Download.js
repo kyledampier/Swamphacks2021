@@ -6,13 +6,15 @@ import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import Chart from './chart/chart.js'
+import CustomChart from './chart/CustomChart.js';
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDoc, doc } from 'firebase/firestore/lite';
+import { getFirestore, collection, getDoc, doc, onSnapshot } from 'firebase/firestore';
+import FormatData from './chart/FormatData.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDiC2CIGBemOQ9X4u1cbLy0U52qNWpVvss",
@@ -30,7 +32,7 @@ const axios = require('axios').default;
 
 async function getLink(db, id) {
     const docRef = doc(db, "links", id);
-    const link = await getDoc(docRef)
+    const link = await getDoc(docRef);
 
     if (link.exists()) {
         console.log("Document data:", link.data()['data']['chapters']);
@@ -50,7 +52,7 @@ function Copyright() {
     return (
         <Typography variant="body2" color="text.secondary" align="center">
             {'Copyright © '}
-            <Link color="inherit" href="https://ZoomBuddy.app/">
+            <Link color="inherit" href="/">
                 ZoomBuddy
             </Link>{' '}
             {new Date().getFullYear()}
@@ -62,9 +64,12 @@ function Copyright() {
 export default class Download extends React.Component{
 
     constructor(props) {
-        super(props)
+        super(props);
         this.state = {
             timelineData: null,
+            docId: null,
+            url: '',
+            status: null
         }
     }
 
@@ -72,14 +77,36 @@ export default class Download extends React.Component{
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         // eslint-disable-next-line no-console
-        axios.post('http://localhost:3000/test', {
-            url: data.get('url')
-        })
+        axios.post('http://localhost:3001/transcript', {
+            zoom_url: data.get('url')
+        }).then((res) => {
+            console.log(res.data);
+            this.setState({
+                docId: res.data.id,
+            })
+
+            console.log("Testing 123");
+            onSnapshot(doc(db, "links", res.data.id), (doc) => {
+                console.log("Current data: ", doc.data());
+                if (doc.data()['status'] === "Completed") {
+                    this.setState({
+                        timelineData: doc.data()['data']['chapters'],
+                        status: doc.data()['status'],
+                    });
+                } else {
+                    this.setState({
+                        status: doc.data()['status'],
+                    });
+                }
+            });
+        }).catch((err) => {
+            console.log(err);
+        });
     };
 
     handleTest = async (event) =>  {
         var link
-        var id = "U6lmfIAMHuaKNrcJhijk"
+        var id = "QR2DMbKHexkTFVx98xmS"
         link = await getLink(db, id)
         this.setState({timelineData: link});
     };
@@ -90,7 +117,7 @@ export default class Download extends React.Component{
     
                 {/* MAIN BODY */}
     
-                <Container component="main" maxWidth="xs">
+                <Container component="main" maxWidth="100%">
                     <CssBaseline />
                     <Box
                         sx={{
@@ -108,21 +135,23 @@ export default class Download extends React.Component{
                             Take your studying to the next level
                         </Typography>
                         <Box component="form" noValidate onSubmit={this.handleSubmit} sx={{ mt: 3 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        required
-                                        fullWidth
-                                        id="outlined-basic"
-                                        variant="outlined"
-                                        label="Zoom url"
-                                        name="url"
-                                        InputProps={{
-                                            style: {color: 'white'}
-                                        }}
-                                    />
-                                </Grid>
-                            </Grid>
+                            <Typography component="p" variant="body1" color="white">
+                                Enter the Zoom URL of the meeting you want to download
+                            </Typography>
+                            <TextField
+                                required
+                                fullWidth
+                                id="outlined-basic"
+                                variant="outlined"
+                                name="url"
+                                hint="Zoom Link"
+                                InputProps={{
+                                    style: {color: 'black', backgroundColor: '#fff', width: '100%'},
+                                }}
+                            />
+                           
+                            
+                            {(this.state.status === null) && (
                             <Button
                                 type="submit"
                                 fullWidth
@@ -131,10 +160,21 @@ export default class Download extends React.Component{
                             >
                                 Submit
                             </Button>
-
+                            )}
                             <Button variant="text" onClick={this.handleTest}>
                                 Test
                             </Button>   
+
+                            <br />
+
+                            {(this.state.status !== null && this.state.status !== 'Completed') && (
+                                <div alignContent="center">
+                                    <CircularProgress style={{margin: "0 auto"}}/>
+                                    <Typography variant="h4" align="center">
+                                        {this.state.status}
+                                    </Typography>
+                                </div>
+                            )}
 
                             <Grid container justifyContent="flex-end">
                             </Grid>
@@ -144,8 +184,9 @@ export default class Download extends React.Component{
 
                 {/* FOOTER */}
                 {(this.state.timelineData != null) && (
-                    <div style={{display: 'flex',  justifyContent:'center', alignItems:'center'}}>
-                        <Chart />
+                    <div style={{justifyContent:'center', alignItems:'center', width: '90%', margin: '0 auto'}}>
+                        <CustomChart timelineData={this.state.timelineData}/>
+                        <FormatData timelineData={this.state.timelineData}/>
                     </div >
                 )}
 

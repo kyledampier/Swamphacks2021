@@ -132,9 +132,9 @@ def download_from_url(zoom_url, link_doc, downloads_folder=downloads_folder, hea
     })
 
     # preform transcription asynchronously
-    thread = Thread(target=get_zoom_transcript,
-                    args=(_id, link_doc, "data", headers, True))
-    thread.start()
+    # thread = Thread(target=get_zoom_transcript,
+    #                 args=(_id, link_doc, "data", headers, True))
+    # thread.start()
 
     # delete temporary files
     os.system(f"rm -rf {downloads_folder}")
@@ -189,5 +189,5 @@ def get_transcript_file(id, transcript_folder="./data/"):
 
 
 if __name__ == '__main__':
-    # run debug server on port 3000
-    app.run(debug=True, port=3000)
+    # run debug server on port 3001
+    app.run(debug=True, port=3001)
