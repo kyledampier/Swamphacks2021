@@ -77,7 +77,7 @@ export default class Download extends React.Component{
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         // eslint-disable-next-line no-console
-        axios.post('http://localhost:3001/transcript', {
+        axios.post('http://3.237.87.112:5000/transcript', {
             zoom_url: data.get('url')
         }).then((res) => {
             console.log(res.data);
@@ -85,7 +85,6 @@ export default class Download extends React.Component{
                 docId: res.data.id,
             })
 
-            console.log("Testing 123");
             onSnapshot(doc(db, "links", res.data.id), (doc) => {
                 console.log("Current data: ", doc.data());
                 if (doc.data()['status'] === "Completed") {
@@ -168,10 +167,16 @@ export default class Download extends React.Component{
                             <br />
 
                             {(this.state.status !== null && this.state.status !== 'Completed') && (
-                                <div alignContent="center">
+                                <div>
+                            
+                                    <div style={{display: 'flex', justifyContent: 'center'}}>
                                     <CircularProgress style={{margin: "0 auto"}}/>
-                                    <Typography variant="h4" align="center">
+                                    </div>
+                                    <Typography variant="h5" align="center">
                                         {this.state.status}
+                                    </Typography>
+                                    <Typography variant="body1" align="center">
+                                        {"This process may take a couple minute. It will restart if you refresh!"}
                                     </Typography>
                                 </div>
                             )}
@@ -184,7 +189,7 @@ export default class Download extends React.Component{
 
                 {/* FOOTER */}
                 {(this.state.timelineData != null) && (
-                    <div style={{justifyContent:'center', alignItems:'center', width: '90%', margin: '0 auto'}}>
+                    <div style={{justifyContent:'center', alignItems:'center', width: '90%', margin: '0 auto', marginTop: '10px'}}>
                         <CustomChart timelineData={this.state.timelineData}/>
                         <FormatData timelineData={this.state.timelineData}/>
                     </div >
