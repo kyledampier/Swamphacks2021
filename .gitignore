@@ -1,5 +1,4 @@
 backend/data/
 backend/requests/
+my-app/build/
 *.log
-
-
